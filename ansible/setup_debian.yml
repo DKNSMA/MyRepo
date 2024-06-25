@@ -29,7 +29,7 @@
           auto lo
           iface lo inet loopback
 
-          auto eth0
+          auto eth0                   # в плейбуке оставил дефолтный адаптер, на разных вм он разный
           iface eth0 inet static
           address 192.168.1.75
           netmask 255.255.255.0

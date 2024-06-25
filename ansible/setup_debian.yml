@@ -1,0 +1,44 @@
+---
+- name: Настройка debian 10
+  hosts: all
+  become: yes
+  var_files: vars/secure.yml
+  tasks:
+    - name: Установка sudo
+      apt:
+        name: sudo
+        state: present
+
+    - name: Создание пользователя
+      user:
+        name: dmitrii
+        password: "{{ 'dmitrii' | password_hash('sha512') }}"
+        shell: /bin/bash
+        groups: sudo
+
+    - name: Выдача sudo
+      copy:
+        dest: /etc/sudoers.d/dmitrii
+        content: "dmitrii ALL=(ALL) NOPASSWD:ALL"
+        mode: '0440'
+
+    - name: Назначение статического адреса
+      copy:
+        dest: /etc/network/interfaces
+        content: |
+          auto lo
+          iface lo inet loopback
+
+          auto eth0
+          iface eth0 inet static
+          address 192.168.1.75
+          netmask 255.255.255.0
+          gateway 192.168.1.1
+        backup: yes
+        mode: '0644'
+
+    - name: Перезапуск сети
+      service:
+        name: networking
+        state: restarted
+        enabled: yes

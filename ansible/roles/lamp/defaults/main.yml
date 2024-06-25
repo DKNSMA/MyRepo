@@ -1,0 +1,18 @@
+---
+nginx_package: nginx
+php_version: "7.4"
+php_modules:
+  - php{{ php_version }}-bcmath
+  - php{{ php_version }}-mysql
+  - php{{ php_version }}-mbstring
+  - php{{ php_version }}-xmlrpc
+  - php{{ php_version }}-xml
+  - php{{ php_version }}-zip
+  - php{{ php_version }}-intl
+  - php{{ php_version }}-soap
+  - php{{ php_version }}-curl
+  - php{{ php_version }}-dev
+  - php{{ php_version }}-fpm
+  - php{{ php_version }}-cli
+mysql_version: "5.7"
+certbot_package: certbot

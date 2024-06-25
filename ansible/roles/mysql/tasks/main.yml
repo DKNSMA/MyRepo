@@ -1,0 +1,44 @@
+---
+- name: Установка пароля MySQL
+  become: yes
+  debconf:
+    name: "{{ item.name }}"
+    question: "{{ item.question }}"
+    value: "{{ mysql_root_password }}"
+    vtype: "password"
+  loop:
+    - { name: "mysql-server", question: "mysql-server/root_password" }
+    - { name: "mysql-server", question: "mysql-server/root_password_again" }
+
+- name: Установка mysql-server
+  become: yes
+  apt:
+    name: mysql-server
+    state: present
+
+- name: Запуск mysql-server
+  become: yes
+  service:
+    name: mysql
+    state: started
+    enabled: true
+
+- name: Удаление тестового юзера
+  become: yes
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "DELETE FROM mysql.user WHERE User='';"
+
+- name: Удаление тестовой базы
+  become: yes
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "DROP DATABASE IF EXISTS test;"
+
+- name: Проверка секурности
+  become: yes
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+
+- name: Перезапуск таблиц привилегий
+  become: yes
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "FLUSH PRIVILEGES;"

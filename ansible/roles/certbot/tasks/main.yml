@@ -1,0 +1,13 @@
+---
+- name: Установка Certbot
+  become: yes
+  apt:
+    name: certbot
+    state: present
+
+- name: Настройка SSL Сертификата
+  become: yes
+  command: >
+    certbot certonly --non-interactive --agree-tos --email {{ email }} --webroot
+    -w /var/www/wordpress -d {{ domain_name }}
+  notify: Reload Nginx

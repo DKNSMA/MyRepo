@@ -1,0 +1,50 @@
+server {
+    listen 80;
+    server_name {{ domain_name }};
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ domain_name }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ domain_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ domain_name }}/privkey.pem;
+
+    root /var/www/wordpress;
+    index index.php index.html index.htm;
+
+    # Restrict access to only allowed IPs
+    set $allowed_ip no;
+    if ($remote_addr ~* "{{ allowed_ip }}") {
+        set $allowed_ip yes;
+    }
+
+    location / {
+        if ($allowed_ip = no) {
+            return 403;
+        }
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        if ($allowed_ip = no) {
+            return 403;
+        }
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+
+server {
+    listen 80;
+    server_name localhost;
+    deny all;
+}

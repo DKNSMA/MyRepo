@@ -1,0 +1,21 @@
+---
+- hosts: all
+  become: yes
+  vars_files: 
+    - vault.yml
+  vars:
+    domain_name: dknsma.ddns.net
+    allowed_ip: 89.23.5.74
+    email: majckoaa@gmail.com
+  roles:
+    - mysql
+    - nginx
+    - wordpress
+    - certbot
+  handlers:
+    - name: Перезагрузка nginx
+      become: yes
+      service:
+        name: nginx
+        state: reloaded
+      ignore_errors: yes

@@ -1,0 +1,64 @@
+---
+- name: Установка доп пакетов
+  apt:
+    name:
+      - apt-transport-https
+      - lsb-release
+      - ca-certificates
+      - gnupg
+      - wget
+    state: present
+    update_cache: yes
+
+- name: Добавление GPG ключа
+  apt_key:
+    url: https://packages.sury.org/php/apt.gpg
+    state: present
+
+- name: Добавление репозитория sury.org
+  apt_repository:
+    repo: "deb https://packages.sury.org/php/ {{ ansible_distribution_release }} main"
+    state: present
+    filename: "sury-php"
+
+- name: Обновление кэша
+  apt:
+    update_cache: yes
+
+- name: Установка nginx
+  apt:
+    name: "{{ nginx_package }}"
+    state: present
+
+- name: Установка PHP и его друзей
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ php_modules }}"
+
+- name: Загрузка MySQL APT GPG ключа
+  get_url:
+    url: https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+    dest: /tmp/RPM-GPG-KEY-mysql-2022
+
+- name: Добавление ключа
+  command: "apt-key add /tmp/RPM-GPG-KEY-mysql-2022"
+
+- name: Добавление репозитория
+  apt_repository:
+    repo: "deb http://repo.mysql.com/apt/debian/ bookworm mysql-5.7"
+    state: present
+
+- name: Обновление кэша после добавления репозитория
+  apt:
+    update_cache: yes
+
+- name: Установка MySQL
+  apt:
+    name: mysql-server
+    state: present
+
+- name: Установка Certbot
+  apt:
+    name: "{{ certbot_package }}"
+    state: present

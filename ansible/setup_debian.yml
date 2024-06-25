@@ -12,7 +12,7 @@
     - name: Создание пользователя
       user:
         name: dmitrii
-        password: "{{ 'dmitrii' | password_hash('sha512') }}"
+        password: "{{ 'dmitrii' | 4a089a01ad50b4385ef63ed3d5fcfd7e5ffdc2667cf391be5054ccfe34887e68d7b427857ec034a103f7aef457259b800599040e8fac76a6d7627645c1264011 }}"
         shell: /bin/bash
         groups: sudo
 

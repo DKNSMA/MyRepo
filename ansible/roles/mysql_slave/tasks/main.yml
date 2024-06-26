@@ -1,0 +1,78 @@
+---
+- name: Остановка службы MySQL на порту slave
+  service:
+    name: mysql-slave
+    state: stopped
+  ignore_errors: yes
+
+- name: Создание каталога данных MySQL для второго инстанса
+  file:
+    path: "{{ slave_mysql_datadir }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0755'
+
+- name: Создание конфигурации MySQL для второго инстанса
+  copy:
+    dest: /etc/mysql/mysql-slave.cnf
+    content: |
+      [mysqld]
+      datadir={{ slave_mysql_datadir }}
+      port={{ slave_mysql_port }}
+      server-id=2
+      log_bin=mysql-bin
+      gtid_mode=ON
+      enforce-gtid-consistency=true
+      log_slave_updates=true
+      relay_log=relay-bin
+      skip_slave_start=true
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Инициализация каталога данных MySQL для второго инстанса
+  command: mysqld --initialize-insecure --user=mysql --datadir={{ slave_mysql_datadir }}
+  args:
+    creates: "{{ slave_mysql_datadir }}/mysql"
+
+- name: Создание службы systemd MySQL для второго инстанса
+  copy:
+    dest: /etc/systemd/system/mysql-slave.service
+    content: |
+      [Unit]
+      Description=MySQL database server for slave instance
+      After=network.target
+
+      [Service]
+      User=mysql
+      Group=mysql
+      ExecStart=/usr/sbin/mysqld --defaults-file=/etc/mysql/mysql-slave.cnf
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Перезапуск systemd
+  command: systemctl daemon-reload
+
+- name: Запуск службы MySQL slave
+  service:
+    name: mysql-slave
+    state: started
+    enabled: true
+
+- name: Создание временного пользователя для второго инстанса MySQL
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "CREATE USER 'temp_user'@'localhost' IDENTIFIED BY 'temp_password'; GRANT ALL PRIVILEГES ON *.* TO 'temp_user'@'localhost' WITH GRANT OPTION;" -P {{ slave_mysql_port }}
+
+- name: Установка пароля root для второго инстанса MySQL
+  shell: >
+    mysql -utemp_user -ptemp_password -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password }}'; FLUSH PRIVILEGES;" -P {{ slave_mysql_port }}
+
+- name: Удаление временного пользователя
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "DROP USER 'temp_user'@'localhost';" -P {{ slave_mysql_port }}

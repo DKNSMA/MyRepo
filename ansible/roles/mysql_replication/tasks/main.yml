@@ -1,0 +1,31 @@
+---
+- name: Создание дамп MySQL с GTID
+  shell: >
+    mysqldump --all-databases --single-transaction --triggers --routines --events --master-data=2 --user=root --password={{ mysql_root_password }} > /tmp/master-dump.sql
+  args:
+    creates: /tmp/master-dump.sql
+
+- name: Копирование дампа в каталог slave
+  command: cp /tmp/master-dump.sql /tmp/master-dump-slave.sql
+
+- name: Сброс GTID на slave
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "RESET MASTER; RESET SLAVE ALL;" -P {{ slave_mysql_port }}
+
+- name: Импорт дампа на slave
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} < /tmp/master-dump-slave.sql -P {{ slave_mysql_port }}
+
+- name: чек статуса мастера MySQL
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "SHOW MASTER STATUS\G"
+  register: mysql_master_status
+
+- name: Установка логфайла и позиции
+  set_fact:
+    master_log_file: "{{ mysql_master_status.stdout_lines | select('search', '^\\s*File:') | first | regex_replace('^\\s*File:\\s+', '') }}"
+    master_log_pos: "{{ mysql_master_status.stdout_lines | select('search', '^\\s*Position:') | first | regex_replace('^\\s*Position:\\s+', '') }}"
+
+- name: Настройка славы для использования мастера
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "CHANGE MASTER TO MASTER_HOST='127.0.0.1', MASTER_USER='repl', MASTER_PASSWORD='repl_password', MASTER_PORT=3306, MASTER_LOG_FILE='{{ master_log_file }}', MASTER_LOG_POS={{ master_log_pos }}; START SLAVE;" -P {{ slave_mysql_port }}

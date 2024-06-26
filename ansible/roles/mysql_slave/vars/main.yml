@@ -1,0 +1,3 @@
+---
+slave_mysql_port: 3307
+slave_mysql_datadir: /var/lib/mysql-slave

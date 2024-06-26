@@ -1,0 +1,97 @@
+---
+- name: Проверка наличия MySQL
+  apt:
+    name: mysql-server
+    state: present
+
+- name: Проверка запуска MySQL
+  service:
+    name: mysql
+    state: started
+    enabled: true
+
+- name: Обновление пароля 
+  mysql_user:
+    name: root
+    host_all: yes
+    password: "{{ mysql_root_password }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Проверка бинарного логирования MySQL
+  block:
+    - name: Добавление log_bin в конфигурацию MySQL
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        state: present
+        insertafter: EOF
+        line: 'log_bin=mysql-bin'
+
+    - name: Добавление server-id в конфигурацию MySQL
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        state: present
+        insertafter: EOF
+        line: 'server-id=1'
+
+    - name: Добавление gtid_mode в конфигурацию MySQL
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        state: present
+        insertafter: EOF
+        line: 'gtid_mode=ON'
+
+    - name: Добавление enforce-gtid-consistency в конфигурацию MySQL
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        state: present
+        insertafter: EOF
+        line: 'enforce-gtid-consistency=true'
+
+    - name: Добавление log_slave_updates в конфигурацию MySQL
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        state: present
+        insertafter: EOF
+        line: 'log_slave_updates=ON'
+
+    - name: Добавление binlog_format в конфигурацию MySQL
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        state: present
+        insertafter: EOF
+        line: 'binlog_format=ROW'
+  notify: Перезапуск MySQL
+
+- name: Перезапуск MySQL
+  service:
+    name: mysql
+    state: restarted
+
+- name: Ждёмс
+  wait_for:
+    port: 3306
+    state: started
+    delay: 10
+
+- name: Проверка бинарного логирования MySQL
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "SHOW VARIABLES LIKE 'log_bin';"
+  register: mysql_log_bin_status
+
+- name: Отладка статуса бинарного логирования MySQL
+  debug:
+    var: mysql_log_bin_status.stdout_lines
+
+- name: Проверка режим GTID
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "SHOW VARIABLES LIKE 'gtid_mode';"
+  register: mysql_gtid_mode_status
+
+- name: Отладка статуса режима GTID
+  debug:
+    var: mysql_gtid_mode_status.stdout_lines
+
+- name: Создание тестовой базы данных для генерации бинарных логов
+  shell: >
+    mysql -uroot -p{{ mysql_root_password }} -e "CREATE DATABASE IF NOT EXISTS test_db; USE test_db; CREATE TABLE IF NOT EXISTS test_table (id INT PRIMARY KEY); INSERT INTO test_table (id) VALUES (1) ON DUPLICATE KEY UPDATE id=id;"

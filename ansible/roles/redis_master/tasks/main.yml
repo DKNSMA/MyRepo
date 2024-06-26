@@ -1,0 +1,33 @@
+---
+- name: Установка Redis-сервера
+  apt:
+    name: redis-server
+    state: present
+
+- name: Убедиться, что Redis мастер слушает только localhost
+  template:
+    src: redis.conf.j2
+    dest: /etc/redis/redis.conf
+    owner: redis
+    group: redis
+    mode: '0644'
+
+- name: Перезапуск Redis мастера
+  systemd:
+    name: redis-server
+    state: restarted
+
+- name: Генерация файла данных Redis на удаленном сервере
+  shell: |
+    output_file="/tmp/redis_data.txt"
+    for i in $(seq 1 1000000); do
+      randomvalue=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+      echo "SET key$i $randomvalue" >> $output_file
+    done
+  args:
+    executable: /bin/bash
+
+- name: Загрузка данных в Redis мастер асинхронно
+  command: redis-cli --pipe < /tmp/redis_data.txt
+  async: 3600  # Таймаут в секундах (1 час)
+  poll: 30    # Интервал опроса в секундах

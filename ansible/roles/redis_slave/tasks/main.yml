@@ -1,0 +1,49 @@
+---
+- name: Копирование пользовательской конфигурации Redis для слейва
+  template:
+    src: redis_slave.conf.j2
+    dest: /etc/redis/redis_slave.conf
+    owner: redis
+    group: redis
+    mode: '0644'
+
+- name: Создание systemd службы для Redis слейва
+  template:
+    src: redis-server@slave.service.j2
+    dest: /etc/systemd/system/redis-server@slave.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Перезагрузка демона systemd
+  command: systemctl daemon-reload
+
+- name: Запуск экземпляра Redis слейва
+  systemd:
+    name: redis-server@slave
+    enabled: yes
+    state: started
+  register: redis_slave_start
+  failed_when: false
+
+- name: Вывод статуса службы Redis слейва
+  debug:
+    msg: "{{ redis_slave_start }}"
+
+- name: Показать статус службы Redis слейва, если она не запущена
+  command: systemctl status redis-server@slave.service
+  register: slave_service_status
+  when: redis_slave_start.failed
+
+- name: Вывод статуса службы Redis слейва
+  debug:
+    msg: "{{ slave_service_status.stdout }}"
+  when: redis_slave_start.failed
+
+- name: Проверка данных на Redis слейве
+  command: redis-cli -h 127.0.0.1 -p 6380 info replication
+  register: slave_info
+
+- name: Вывод информации о Redis слейве
+  debug:
+    msg: "{{ slave_info.stdout }}"

@@ -1,0 +1,71 @@
+- name: Создание директорий
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  with_items:
+    - /srv/docker/monitoring/prometheus
+    - /srv/docker/monitoring/grafana
+    - /srv/docker/monitoring/alertmanager
+    - /backup
+  become: true
+
+- name: Настройка прав доступа для Grafana
+  file:
+    path: /srv/docker/monitoring/grafana
+    owner: 472
+    group: 472
+    recurse: yes
+  become: true
+
+- name: Копирование docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /srv/docker/monitoring/docker-compose.yml
+  become: true
+
+- name: Копирование конфигурационного файла Prometheus
+  template:
+    src: prometheus.yml.j2
+    dest: /srv/docker/monitoring/prometheus/prometheus.yml
+  become: true
+
+- name: Копирование конфигурационного файла Alertmanager
+  template:
+    src: alertmanager.yml.j2
+    dest: /srv/docker/monitoring/alertmanager/alertmanager.yml
+  become: true
+
+- name: Копирование скрипта бэкапа
+  copy:
+    src: backup.sh
+    dest: /srv/docker/monitoring/backup.sh
+    mode: '0755'
+  become: true
+
+- name: Копирование backup.service
+  template:
+    src: backup.service.j2
+    dest: /etc/systemd/system/backup.service
+  become: true
+
+- name: Копирование backup.timer
+  template:
+    src: backup.timer.j2
+    dest: /etc/systemd/system/backup.timer
+  become: true
+
+- name: Включение и запуск backup.timer
+  systemd:
+    name: backup.timer
+    enabled: true
+    state: started
+  become: true
+
+- name: Запуск мониторингового стека
+  command: docker-compose up -d
+  args:
+    chdir: /srv/docker/monitoring
+  become: true

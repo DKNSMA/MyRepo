@@ -1,0 +1,6 @@
+[Unit]
+Description=Бэкап данных Docker Monitoring
+
+[Service]
+Type=oneshot
+ExecStart=/srv/docker/monitoring/backup.sh

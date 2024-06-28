@@ -1,0 +1,129 @@
+---
+- name: Установка PHP и Nginx
+  hosts: all
+  become: true
+  vars_files: 
+    - vault.yml
+
+  tasks:
+    - name: Установка друзей PHP 7.4
+      apt:
+        name: 
+          - php7.4-bcmath
+          - php7.4-mysql
+          - php7.4-mbstring
+          - php7.4-xmlrpc
+          - php7.4-xml
+          - php7.4-zip
+          - php7.4-intl
+          - php7.4-soap
+          - php7.4-curl
+          - php7.4-dev
+          - php7.4-fpm
+          - php7.4-cli
+        state: present
+        update_cache: yes
+
+    - name: Настройка пула FPM для app1
+      copy:
+        dest: /etc/php/7.4/fpm/pool.d/app1.conf
+        content: |
+          [app1]
+          user = www-data
+          group = www-data
+          listen = /run/php/php7.4-fpm-app1.sock
+          pm = dynamic
+          pm.max_children = 20
+          pm.start_servers = 5
+          pm.min_spare_servers = 2
+          pm.max_spare_servers = 10
+          pm.max_requests = 500
+
+    - name: Настройка пула FPM для app2
+      copy:
+        dest: /etc/php/7.4/fpm/pool.d/app2.conf
+        content: |
+          [app2]
+          user = www-data
+          group = www-data
+          listen = /run/php/php7.4-fpm-app2.sock
+          pm = static
+          pm.max_children = 10
+
+    - name: Настройка Nginx для app2
+      copy:
+        dest: /etc/nginx/sites-available/app2
+        content: |
+          server {
+              listen 80;
+              server_name example.com;
+
+              root /var/www/app2;
+              index index.php;
+
+              location / {
+                  try_files $uri $uri/ /index.php?$query_string;
+              }
+
+              location ~ \.php$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:/run/php/php7.4-fpm-app2.sock;
+              }
+          }
+
+    - name: Включение сайта Nginx для app2
+      file:
+        src: /etc/nginx/sites-available/app2
+        dest: /etc/nginx/sites-enabled/app2
+        state: link
+
+    - name: Создание корневой директории и index.php для app2
+      file:
+        path: /var/www/app2
+        state: directory
+        owner: www-data
+        group: www-data
+
+    - name: Создание index.php для app2
+      copy:
+        dest: /var/www/app2/index.php
+        content: |
+          <?php
+          echo "app2";
+          ?>
+
+    - name: Настройка хранилища сессий в Redis для app1
+      lineinfile:
+        path: /etc/php/7.4/fpm/pool.d/app1.conf
+        line: 'php_value[session.save_path] = "tcp://127.0.0.1:6379"'
+
+    - name: Настройка параметров загрузки файлов
+      ini_file:
+        dest: /etc/php/7.4/fpm/php.ini
+        section: PHP
+        option: upload_max_filesize
+        value: 20M
+
+    - name: Настройка post_max_size
+      ini_file:
+        dest: /etc/php/7.4/fpm/php.ini
+        section: PHP
+        option: post_max_size
+        value: 20M
+
+    - name: Настройка client_max_body_size в Nginx
+      lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^client_max_body_size'
+        line: 'client_max_body_size 20M;'
+        state: present
+
+    - name: Перезапуск PHP-FPM
+      service:
+        name: php7.4-fpm
+        state: restarted
+
+    - name: Перезапуск Nginx
+      service:
+        name: nginx
+        state: restarted

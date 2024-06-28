@@ -1,0 +1,20 @@
+nginx.access.http_host : "apitest.fundist.org" and nginx.access.response_code >= 500 and nginx.access.response_code < 600
+
+nginx.access.http_host : "apitest.fundist.org" and nginx.access.response_code : 499
+
+nginx.access.http_host : "www.fundist.org" and nginx.access.agent : "HetrixTools Uptime Monitoring Bot"
+
+host.name : "site1-telia-loyalty-app-1" and nginx.access.time_duration > 0.025 and nginx.access.time_duration < 0.04
+
+nginx.access.http_host : "www.fundist.org" and nginx.access.response_code : 302
+
+
+
+Максимальный размер 5,969,296 
+Для хранения ответа полностью в памяти, нам нужно общее количество буферов, которое в сумме даст не менее 5.7 MB.
+
+fastcgi_buffers 192 32k;
+fastcgi_buffer_size 32k;
+
+fastcgi_buffers 96 64k;
+fastcgi_buffer_size 64k;

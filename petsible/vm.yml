@@ -1,0 +1,11 @@
+---
+- name: Настройка виртуальных машин и хоста
+  hosts: all
+  become: yes
+  vars_files:
+    - group_vars/all.yml
+  roles:
+    - role: lighttpd
+    - role: preseed
+    - role: virtualbox
+    - role: vms

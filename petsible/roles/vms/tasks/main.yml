@@ -1,0 +1,21 @@
+    - name: Скачать Debian 12 ISO
+      get_url:
+        url: https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.6.0-amd64-netinst.iso
+        dest: "{{ virtualbox.iso_path }}"
+        mode: '0644'
+
+    - name: Start VM with preseed for Debian_VM_1
+      command: >
+        VBoxManage unattended install Debian_VM_1 --iso=/dmitrii/debian-12.iso --user={{ debian_user }} --full-user-name="Dmitrii" --password={{ debian_user_password }} --locale=en_US --time-zone=UTC --hostname=debian-vm-1 --post-install-command="wget -O /target/preseed.cfg http://{{ ansible_host }}/preseed.cfg; debconf-set-selections /target/preseed.cfg; /target/install.sh" --start-vm=headless
+
+    - name: Start VM with preseed for Debian_VM_2
+      command: >
+        VBoxManage unattended install Debian_VM_2 --iso=/dmitrii/debian-12.iso --user={{ debian_user }} --full-user-name="Dmitrii" --password={{ debian_user_password }} --locale=en_US --time-zone=UTC --hostname=debian-vm-2 --post-install-command="wget -O /target/preseed.cfg http://{{ ansible_host }}/preseed.cfg; debconf-set-selections /target/preseed.cfg; /target/install.sh" --start-vm=headless
+
+    - name: Start VM with preseed for Debian_VM_3
+      command: >
+        VBoxManage unattended install Debian_VM_3 --iso=/dmitrii/debian-12.iso --user={{ debian_user }} --full-user-name="Dmitrii" --password={{ debian_user_password }} --locale=en_US --time-zone=UTC --hostname=debian-vm-3 --post-install-command="wget -O /target/preseed.cfg http://{{ ansible_host }}/preseed.cfg; debconf-set-selections /target/preseed.cfg; /target/install.sh" --start-vm=headless
+
+    - name: Start VM with preseed for Debian_VM_4
+      command: >
+        VBoxManage unattended install Debian_VM_4 --iso=/dmitrii/debian-12.iso --user={{ debian_user }} --full-user-name="Dmitrii" --password={{ debian_user_password }} --locale=en_US --time-zone=UTC --hostname=debian-vm-4 --post-install-command="wget -O /target/preseed.cfg http://{{ ansible_host }}/preseed.cfg; debconf-set-selections /target/preseed.cfg; /target/install.sh" --start-vm=headless

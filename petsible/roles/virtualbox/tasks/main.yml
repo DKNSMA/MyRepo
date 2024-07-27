@@ -1,0 +1,33 @@
+---
+- name: Добавить ключ для репозитория VirtualBox
+  apt_key:
+    url: https://www.virtualbox.org/download/oracle_vbox.asc
+    state: present
+
+- name: Установить зависимости
+  apt:
+    name:
+      - wget
+      - gnupg
+      - software-properties-common
+      - dkms
+    state: present
+
+- name: Добавить репозиторий VirtualBox
+  apt_repository:
+    repo: deb [arch=amd64] https://download.virtualbox.org/virtualbox/debian bookworm contrib
+    state: present
+
+- name: Обновить кэш пакетов
+  apt:
+    update_cache: yes
+
+- name: Копировать файл VirtualBox на сервер
+  copy:
+    src: virtualbox-7.0_7.0.20-163906~Debian~bookworm_amd64.deb
+    dest: /tmp/virtualbox-7.0_7.0.20-163906~Debian~bookworm_amd64.deb
+
+- name: Установить VirtualBox из локального .deb файла
+  apt:
+    deb: /tmp/virtualbox-7.0_7.0.20-163906~Debian~bookworm_amd64.deb
+    state: present

@@ -1,0 +1,5 @@
+---
+- name: Скопировать файл preseed
+  copy:
+    src: preseed.cfg
+    dest: /var/www/html/preseed.cfg

@@ -1,0 +1,11 @@
+---
+- name: Установить lighttpd
+  apt:
+    name: lighttpd
+    state: present
+
+- name: Запустить и включить lighttpd
+  service:
+    name: lighttpd
+    state: started
+    enabled: yes
